@@ -1,0 +1,76 @@
+[gd_scene load_steps=10 format=3]
+
+[ext_resource type="Script" path="res://scripts/level_builder.gd" id="1_level"]
+[ext_resource type="PackedScene" path="res://scenes/player.tscn" id="2_player"]
+[ext_resource type="PackedScene" path="res://scenes/monster.tscn" id="3_monster"]
+[ext_resource type="Shader" path="res://shaders/noise_overlay.gdshader" id="4_shader"]
+[ext_resource type="Script" path="res://scripts/noise_overlay.gd" id="5_overlay"]
+[ext_resource type="Script" path="res://scripts/hud.gd" id="6_hud"]
+[ext_resource type="Script" path="res://scripts/minigame.gd" id="7_minigame"]
+
+[sub_resource type="Environment" id="Environment_dark"]
+background_mode = 1
+background_color = Color(0, 0, 0, 1)
+ambient_light_source = 2
+ambient_light_color = Color(0.1, 0.12, 0.18, 1)
+ambient_light_energy = 0.35
+fog_enabled = true
+fog_light_color = Color(0.02, 0.03, 0.05, 1)
+fog_density = 0.035
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_noise"]
+shader = ExtResource("4_shader")
+shader_parameter/intensity = 1.0
+shader_parameter/time_scale = 12.0
+
+[node name="Main" type="Node3D"]
+script = ExtResource("1_level")
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("Environment_dark")
+
+[node name="NavRegion" type="NavigationRegion3D" parent="."]
+
+[node name="Doors" type="Node3D" parent="."]
+
+[node name="Player" parent="." instance=ExtResource("2_player")]
+transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, 2, 0.1, 0)
+
+[node name="Monster" parent="." instance=ExtResource("3_monster")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 28, 0.1, -5)
+
+[node name="NoiseLayer" type="CanvasLayer" parent="."]
+layer = 10
+
+[node name="NoiseOverlay" type="ColorRect" parent="NoiseLayer"]
+material = SubResource("ShaderMaterial_noise")
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("5_overlay")
+
+[node name="UILayer" type="CanvasLayer" parent="."]
+layer = 20
+
+[node name="HUD" type="Control" parent="UILayer"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("6_hud")
+
+[node name="Minigame" type="Control" parent="UILayer"]
+visible = false
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("7_minigame")
