@@ -1,5 +1,5 @@
 extends CharacterBody3D
-## 글리치 괴물 (담당 B)
+## 글리치 괴물 (담당 B). 모습은 글리치 교수 모델(monster_model.gd)
 ##
 ## 기획안 규칙(4p, 7p):
 ##   - 터미널 정제 중 발생한 소음을 듣고 일정 거리까지 접근한다.
@@ -30,12 +30,11 @@ enum State { DORMANT, IDLE, INVESTIGATE, CHASE, FROZEN }
 @export var activate_after_nodes := 1    # 이 개수 이상 정제되면 활성화
 
 @onready var agent: NavigationAgent3D = $NavigationAgent3D
-@onready var mesh: MeshInstance3D = $MeshInstance3D
+@onready var model: Node3D = $Model
 
 var state: State = State.DORMANT
 var spawn_position: Vector3
 
-var _mat: StandardMaterial3D
 var _last_known := Vector3.ZERO
 var _since_seen := 999.0
 var _idle_timer := 0.0
@@ -52,10 +51,6 @@ const STATE_COLORS := {
 
 func _ready() -> void:
 	spawn_position = global_position
-	# 머티리얼을 인스턴스별로 복제해서 상태 색을 바꿔도 다른 노드에 영향이 없게 한다.
-	_mat = mesh.get_surface_override_material(0).duplicate()
-	mesh.set_surface_override_material(0, _mat)
-
 	GameManager.register_monster(self)
 	GameManager.noise_emitted.connect(_on_noise)
 	GameManager.node_purified.connect(_on_node_purified)
@@ -225,7 +220,7 @@ func _change_state(new_state: State) -> void:
 
 func _apply_state_visuals() -> void:
 	visible = state != State.DORMANT
+	# 얼굴 노이즈 색 = 상태 색. 빛에 굳거나 추격할 때 더 심하게 찢어진다.
 	var c: Color = STATE_COLORS[state]
-	_mat.albedo_color = c * 0.2
-	_mat.emission = c
-	_mat.emission_energy_multiplier = 2.5 if state == State.CHASE else 1.2
+	var glitch := {State.IDLE: 0.25, State.INVESTIGATE: 0.45, State.CHASE: 0.8, State.FROZEN: 1.0}.get(state, 0.2) as float
+	model.set_state_look(c, glitch, state == State.FROZEN, state == State.CHASE)

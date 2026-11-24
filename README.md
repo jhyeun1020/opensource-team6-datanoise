@@ -65,7 +65,7 @@ godot --path . res://scenes/smoke_test.tscn
 | 담당 | 역할 | 파일 |
 |---|---|---|
 | **A 플레이어** | 이동, 손전등 배터리, 상호작용, 발소리 | `scripts/player.gd`, `scenes/player.tscn` |
-| **B 괴물 AI** | 상태기계, 소음 청취, 빛 반응, 길찾기 | `scripts/monster.gd`, `scenes/monster.tscn` |
+| **B 괴물 AI** | 상태기계, 소음 청취, 빛 반응, 길찾기, 괴물 모습 | `scripts/monster.gd`, `scripts/monster_model.gd`, `scenes/monster.tscn` |
 | **C 미니게임·UI** | 0/1 순서 입력, 패턴 대조, HUD | `scripts/minigame.gd`, `scripts/terminal.gd`, `scripts/hud.gd` |
 | **D 레벨·연출** | 3층 레벨, 문·셔터, 조명, 노이즈 셰이더, 사운드 | `scripts/level_builder.gd`, `scripts/door.gd`, `scripts/start_door.gd`, `scripts/room_door.gd`, `scripts/noise_overlay.gd`, `shaders/` |
 
@@ -93,7 +93,12 @@ DORMANT ──노드1 정제──▶ IDLE ──소음 들림──▶ INVESTIG
    └──(리스폰 시 노드 0개)─┘◀───도착, 못 찾음─────┴──────────4초간 놓침──────────────┘
                                    어느 상태든 손전등에 비춰지면 ▶ FROZEN ──빛 꺼짐──▶ CHASE (빠르게)
 ```
-오른쪽 위 HUD에 현재 상태가 글자로 뜬다(디버그). 몸 색도 상태별로 바뀐다: 보라 IDLE, 주황 INVESTIGATE, 빨강 CHASE, 하늘색 FROZEN.
+오른쪽 위 HUD에 현재 상태가 글자로 뜬다(디버그).
+
+**모습: 글리치 교수** (`monster_model.gd`, `shaders/glitch_face.gdshader`). 정장 차림의 마른 사람 실루엣으로, 팔이 지나치게 길고 고개가 꺾여 있다. 얼굴 자리는 깨진 화면 노이즈다. 특정 인물을 본뜨지 않은 원본 디자인이고, 기본 도형만으로 코드에서 만든다(외부 에셋 없음).
+얼굴 노이즈 색이 상태를 나타낸다: 보라 IDLE, 주황 INVESTIGATE, 빨강 CHASE(팔을 앞으로 뻗음), 하늘색 FROZEN(그 자세로 굳고 더 심하게 찢어짐).
+
+![글리치 교수](docs/screenshots/monster_glitch_professor.png)
 
 ## 레벨 (`level_builder.gd`)
 
