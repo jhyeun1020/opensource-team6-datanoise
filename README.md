@@ -14,6 +14,16 @@
 
 Godot 4.7.2 에서 import·실행·스모크 테스트 통과 확인됨 (2026-11-24, 3층 평면 맵).
 
+## Windows 실행 파일(exe) 만들기
+
+내보내기 템플릿(Godot 에디터 → 편집기 → 내보내기 템플릿 관리)이 설치되어 있어야 한다. 설정은 `export_presets.cfg` 의 `Windows Desktop`.
+
+```powershell
+godot --headless --path . --export-release "Windows Desktop" export/DataNoise/DataNoise.exe
+```
+
+팀원 배포용 zip에는 `DataNoise.exe`, `docs/플레이_설명서.txt`, `docs/그래픽 문제 시 실행.bat` 을 함께 넣는다. `export/` 폴더는 Git에 올리지 않는다.
+
 ## 자동 스모크 테스트
 
 손으로 플레이하지 않고 전체 루프를 검사한다. 파트를 고친 뒤 합치기 전에 돌려 볼 것.
