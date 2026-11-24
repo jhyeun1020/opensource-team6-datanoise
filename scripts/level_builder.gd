@@ -18,22 +18,29 @@ const TOTAL_NODES := 3  # GameManager.TOTAL_NODES 와 같은 값 (에디터에�
 const TerminalScene := preload("res://scenes/terminal.tscn")
 const DoorScene := preload("res://scenes/door.tscn")
 
-const WALL_H := 4.0
+# 치수는 미디어랩스 Polycam 스캔(reference/scans, 2026-11-24) 실측값 기준.
+#   복도 안쪽 폭 약 2.5m, 천장 약 2.7m, 실습실 안쪽 약 7.5 x 14.5m, 복도 끝 방 약 7 x 7.6m
+# z_half 는 벽 중심까지의 거리다. 안쪽 폭 = z_half * 2 - WALL_T.
+const WALL_H := 2.7
 const WALL_T := 0.3
-const DOOR_W := 3.0
+const DOOR_W := 2.0  # 괴물(반지름 0.5)이 지나갈 수 있는 최소 폭 근처
 
 # 방 목록: [x_from, x_to, z_half]. x축을 따라 일직선으로 이어진다.
+# 경계 x 는 정수로 둔다 (DOORS 키가 정수).
 const ROOMS := [
-	[0.0, 10.0, 5.0],    # 01 입구 (도입)
-	[10.0, 22.0, 2.0],   # 서버 복도
-	[22.0, 34.0, 6.0],   # 02 서버실 (위기)
-	[34.0, 44.0, 2.0],   # 복도
-	[44.0, 60.0, 8.0],   # 03 메인 서버실 (절정)
-	[60.0, 64.0, 2.0],   # 탈출 통로
+	[0.0, 8.0, 3.65],    # 01 입구 (도입)      안쪽 약 7 x 8m  (복도 끝 방 크기)
+	[8.0, 20.0, 1.4],    # 서버 복도           안쪽 폭 2.5m
+	[20.0, 34.0, 3.9],   # 02 서버실 (위기)    안쪽 약 7.5 x 14m (실습실 크기)
+	[34.0, 44.0, 1.4],   # 복도                안쪽 폭 2.5m
+	[44.0, 58.0, 3.9],   # 03 메인 서버실 (절정) 안쪽 약 7.5 x 14m
+	[58.0, 62.0, 1.4],   # 탈출 통로
 ]
 
 # 문이 있는 경계 x → 열리기 위해 필요한 정제 노드 수
-const DOORS := { 10: 1, 34: 2, 60: 3 }
+const DOORS := { 8: 1, 34: 2, 58: 3 }
+
+const EXIT_X := 60.5  # 탈출 트리거 위치 (스모크 테스트도 이 값을 쓴다)
+const CORRIDOR_MAX_HALF := 2.0  # 이 폭 이하는 복도로 보고 붉은 조명
 
 @onready var nav_region: NavigationRegion3D = $NavRegion
 @onready var doors_root: Node3D = $Doors
@@ -138,14 +145,15 @@ func _wall_z(z: float, x0: float, x1: float) -> void:
 		Vector3(x1 - x0 + WALL_T, WALL_H, WALL_T), _wall_mat)
 
 
-## 서버 랙: 시야를 끊고 동선을 꺾는 장애물. 간격 2.0 이상(괴물 agent_radius 0.6 통과).
+## 서버 랙: 시야를 끊고 동선을 꺾는 장애물. 실습실 책상 두 줄 배치를 본떴다.
+## 랙과 벽 사이 1.5m, 가운데 통로 2.7m, 랙 사이 1.5m (괴물 agent_radius 0.5 통과).
 func _place_racks() -> void:
-	var rack := Vector3(2.0, 2.4, 0.9)
-	for x in [25.0, 29.0]:
-		for z in [-3.2, 3.2]:
+	var rack := Vector3(2.0, 2.2, 0.9)
+	for x in [22.5, 26.0, 29.5]:
+		for z in [-1.8, 1.8]:
 			_box(nav_region, Vector3(x, rack.y * 0.5, z), rack, _rack_mat)
-	for x in [47.0, 51.0, 55.0]:
-		for z in [-4.5, 4.5]:
+	for x in [47.0, 50.5, 54.0]:
+		for z in [-1.8, 1.8]:
 			_box(nav_region, Vector3(x, rack.y * 0.5, z), rack, _rack_mat)
 
 
@@ -153,14 +161,14 @@ func _place_lights() -> void:
 	for i in ROOMS.size():
 		var r: Array = ROOMS[i]
 		var light := OmniLight3D.new()
-		var corridor: bool = r[2] <= 2.0
+		var corridor: bool = r[2] <= CORRIDOR_MAX_HALF
 		# 바닥과 벽 윤곽은 보이되 위협은 어둠에 숨을 정도. 플레이테스트 후 조절.
 		light.light_color = Color(0.8, 0.12, 0.12) if corridor else Color(0.35, 0.45, 0.7)
 		light.light_energy = 0.7 if corridor else 0.6
 		light.omni_range = maxf(r[1] - r[0], r[2] * 2.0) * 0.9
 		light.shadow_enabled = false
 		_extras.add_child(light)
-		light.position = Vector3((r[0] + r[1]) * 0.5, 3.6, 0.0)
+		light.position = Vector3((r[0] + r[1]) * 0.5, WALL_H - 0.3, 0.0)
 
 
 func _place_doors() -> void:
@@ -173,10 +181,10 @@ func _place_doors() -> void:
 
 
 func _place_terminals() -> void:
-	# (위치, 화면이 향하는 방향, 노드 번호, 모드)
-	_terminal(Vector3(8.0, 0.0, -4.65), Vector3(0, 0, 1), 1, Terminal.Mode.SEQUENCE)
-	_terminal(Vector3(32.0, 0.0, 5.65), Vector3(0, 0, -1), 2, Terminal.Mode.PATTERN)
-	_terminal(Vector3(52.0, 0.0, 7.65), Vector3(0, 0, -1), 3, Terminal.Mode.SEQUENCE)
+	# (위치, 화면이 향하는 방향, 노드 번호, 모드). 벽에 등을 붙인다: z = ±(z_half - 0.5)
+	_terminal(Vector3(6.5, 0.0, -3.15), Vector3(0, 0, 1), 1, Terminal.Mode.SEQUENCE)
+	_terminal(Vector3(32.5, 0.0, 3.4), Vector3(0, 0, -1), 2, Terminal.Mode.PATTERN)
+	_terminal(Vector3(56.5, 0.0, -3.4), Vector3(0, 0, 1), 3, Terminal.Mode.SEQUENCE)
 
 
 func _terminal(pos: Vector3, face_dir: Vector3, index: int, mode: int) -> void:
@@ -193,11 +201,11 @@ func _place_exit_trigger() -> void:
 	var area := Area3D.new()
 	var col := CollisionShape3D.new()
 	var shape := BoxShape3D.new()
-	shape.size = Vector3(2.0, 3.0, 4.0)
+	shape.size = Vector3(2.0, WALL_H, 2.4)
 	col.shape = shape
 	area.add_child(col)
 	_extras.add_child(area)
-	area.position = Vector3(62.5, 1.5, 0.0)
+	area.position = Vector3(EXIT_X, WALL_H * 0.5, 0.0)
 	if not Engine.is_editor_hint():
 		area.body_entered.connect(_on_exit_entered)
 

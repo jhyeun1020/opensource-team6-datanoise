@@ -90,6 +90,13 @@ func _run() -> void:
 		if idx == 1:
 			_check(monster.state != monster.State.DORMANT and monster.visible, "노드 1 이후 괴물 활성화")
 
+	# ---- 문이 다 열린 뒤 괴물이 좁은 문을 지나 모든 구역으로 길을 찾는지 (실측 폭 2.5m 복도, 2m 문)
+	var nav_map: RID = monster.agent.get_navigation_map()
+	for goal in [Vector3(2, 0, 0), Vector3(14, 0, 0), Vector3(39, 0, 0), Vector3(51, 0, 3), Vector3(60.5, 0, 0)]:
+		var path := NavigationServer3D.map_get_path(nav_map, monster.spawn_position, goal, true)
+		var reached: bool = path.size() > 0 and Vector2(path[-1].x, path[-1].z).distance_to(Vector2(goal.x, goal.z)) < 0.6
+		_check(reached, "괴물 스폰 → (%.0f, %.0f) 길찾기 가능" % [goal.x, goal.z])
+
 	# ---- 괴물: 빛에 정지 / 빛 끄면 추격  (장애물 없는 두 번째 복도 x 34~44에서)
 	player.global_position = Vector3(36, 0.1, 0)
 	player.rotation = Vector3(0, -PI / 2, 0)  # +x 방향
@@ -136,6 +143,6 @@ func _run() -> void:
 	_check(GameManager.purified_count == GameManager.TOTAL_NODES, "리스폰 후 정제 진행도 유지")
 
 	# ---- 탈출
-	player.global_position = Vector3(62.5, 0.1, 0)
+	player.global_position = Vector3(preload("res://scripts/level_builder.gd").EXIT_X, 0.1, 0)
 	await _frames(3)
 	_check(GameManager.has_won, "탈출 트리거 → 승리")
