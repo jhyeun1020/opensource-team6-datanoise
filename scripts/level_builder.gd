@@ -24,6 +24,7 @@ const TOTAL_NODES := 3  # GameManager.TOTAL_NODES 와 같은 값 (에디터에�
 const TerminalScene := preload("res://scenes/terminal.tscn")
 const DoorScene := preload("res://scenes/door.tscn")
 const StartDoorScript := preload("res://scripts/start_door.gd")
+const RoomDoorScript := preload("res://scripts/room_door.gd")
 
 const WALL_H := 2.7
 const WALL_T := 0.3
@@ -105,7 +106,6 @@ var _locked_floor_mat: StandardMaterial3D
 var _wall_mat: StandardMaterial3D
 var _rack_mat: StandardMaterial3D
 var _desk_mat: StandardMaterial3D
-var _door_mat: StandardMaterial3D
 var _metal_mat: StandardMaterial3D
 var _debris_mat: StandardMaterial3D
 
@@ -172,7 +172,6 @@ func _make_materials() -> void:
 	_wall_mat = _mat(Color(0.22, 0.23, 0.27))
 	_rack_mat = _mat(Color(0.08, 0.09, 0.11), 0.35, 0.7)
 	_desk_mat = _mat(Color(0.28, 0.29, 0.31), 0.7)
-	_door_mat = _mat(Color(0.3, 0.27, 0.24), 0.6)
 	_metal_mat = _mat(Color(0.35, 0.36, 0.38), 0.3, 0.8)
 	_debris_mat = _mat(Color(0.18, 0.16, 0.14), 1.0)
 
@@ -216,8 +215,12 @@ func _build_rooms() -> void:
 			var face_z := s * (CORR - WALL_T * 0.5 - 0.02)
 			var rot := 0.0 if s < 0 else PI
 			_sign(r.name, Vector3(dx, 2.3, face_z), rot)
-			if not r.open:
-				_door_panel(Vector3(dx, 0, s * (CORR - WALL_T * 0.5 - 0.03)), rot, 1.0)
+			if r.open:
+				# 출입구에 여닫는 문. 방 안쪽으로 열린다
+				_room_door(Vector2(dx - DOOR_GAP * 0.5 + 0.02, z_in), Vector2(1, 0), DOOR_GAP - 0.05, Vector2(0, s), false)
+			else:
+				# 잠긴 문: 복도 쪽 벽면에 붙어 있고 열리지 않는다
+				_room_door(Vector2(dx - 0.5, s * (CORR - WALL_T * 0.5 - 0.04)), Vector2(1, 0), 1.0, Vector2(0, s), true)
 		if r.get("desks", false):
 			_place_desks(r)
 		if r.get("racks", false):
@@ -339,6 +342,7 @@ func _build_east() -> void:
 	var sw_out := Vector2(-sw_dir.y, sw_dir.x)  # 홀 쪽
 	var sign_pos: Vector2 = sw_mid + sw_dir * (acad_gap * 0.5 + 0.6) + sw_out * (WALL_T * 0.5 + 0.02)
 	_sign("학회실", Vector3(sign_pos.x, 2.3, sign_pos.y), _face_rot(sw_out))
+	_room_door(sw_mid - sw_dir * (acad_gap * 0.5 - 0.02), sw_dir, acad_gap - 0.05, -sw_out, false)
 	# 학회실 회의 탁자
 	_box(nav_region, Vector3(78.5, 0.375, HALL_TOP + 4.0), Vector3(3.0, 0.75, 1.0), _desk_mat)
 
@@ -355,7 +359,7 @@ func _build_east() -> void:
 	_wall_seg(b2, b)
 	_floor_poly(PackedVector2Array([a, b, b2, a2]), false)
 	var lab_door: Vector2 = upper0 + d * 13.0 - up * (WALL_T * 0.5 + 0.03)
-	_door_panel(Vector3(lab_door.x, 0, lab_door.y), _face_rot(-up), 1.0)
+	_room_door(lab_door - d * 0.5, d, 1.0, up, true)
 	_sign("랩실", Vector3(lab_door.x, 2.3, lab_door.y) + Vector3(-up.x, 0, -up.y) * 0.02, _face_rot(-up))
 
 	# 사선 복도 끝: 무너진 잔해로 막힘 (스케치의 낙서 구역, 접근 금지)
@@ -557,9 +561,21 @@ func _floor_poly(points: PackedVector2Array, collide := true) -> void:
 		_extras.add_child(mi)
 
 
-func _door_panel(pos: Vector3, rot_y: float, width: float) -> void:
-	var body := _box(_extras, pos + Vector3(0, 1.05, 0), Vector3(width, 2.1, 0.05), _door_mat, false)
-	body.rotation.y = rot_y
+## 방 문 하나. hinge = 경첩 위치(x-z), dir = 닫혔을 때 문이 뻗는 방향, into = 방 안쪽 방향.
+func _room_door(hinge: Vector2, dir: Vector2, width: float, into: Vector2, locked: bool) -> void:
+	var door := StaticBody3D.new()
+	door.set_script(RoomDoorScript)
+	door.width = width
+	door.height = DOOR_H
+	door.locked = locked
+	var rot := atan2(-dir.y, dir.x)
+	var a := deg_to_rad(95.0)
+	var swung := Vector2(cos(rot + a), -sin(rot + a))  # +a 만큼 돌렸을 때 문이 향하는 방향
+	door.open_angle_deg = 95.0 if swung.dot(into) > 0.0 else -95.0
+	door.position = Vector3(hinge.x, 0.0, hinge.y)
+	door.rotation.y = rot
+	doors_root.add_child(door)  # Doors 아래: 네비메시에서 제외
+
 
 
 func _sign(text: String, pos: Vector3, rot_y: float) -> void:

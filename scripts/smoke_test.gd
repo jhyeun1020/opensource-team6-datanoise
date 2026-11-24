@@ -40,6 +40,9 @@ func _run() -> void:
 	if player == null or monster == null:
 		return
 
+	# 테스트 중 실제 마우스가 움직여 시선이 돌아가면 빛 판정이 흔들린다 → 마우스 시선 끔
+	player.mouse_sensitivity = 0.0
+
 	var minigame := get_tree().root.find_child("Minigame", true, false)
 	_check(minigame != null, "미니게임 UI 존재")
 
@@ -110,6 +113,31 @@ func _run() -> void:
 			_check(d.is_open == should_open, "노드 %d 이후 문(필요 %d) 열림=%s" % [idx, d.required_nodes, should_open])
 		if idx == 1:
 			_check(monster.state != monster.State.DORMANT and monster.visible, "노드 1 이후 괴물 활성화")
+
+	# ---- 방 문: 열기·닫기 / 잠긴 문 / 괴물이 밀어 열기
+	var room_doors := get_tree().get_nodes_in_group("room_doors")
+	var open_doors := room_doors.filter(func(d): return not d.locked)
+	var locked_doors := room_doors.filter(func(d): return d.locked)
+	_check(open_doors.size() == 9 and locked_doors.size() == 8, "방 문 배치 (열리는 문 %d / 잠긴 문 %d)" % [open_doors.size(), locked_doors.size()])
+	if open_doors.size() >= 2 and locked_doors.size() >= 1:
+		var rd = open_doors[0]
+		rd.interact(player)
+		await get_tree().create_timer(0.8).timeout
+		_check(rd.is_open and absf(rd.rotation.y - rd._closed_rot) > 1.4, "E로 방 문 열림 (방 안쪽으로 회전)")
+		rd.interact(player)
+		await get_tree().create_timer(0.8).timeout
+		_check(not rd.is_open and absf(rd.rotation.y - rd._closed_rot) < 0.05, "E로 방 문 닫힘")
+		var ld = locked_doors[0]
+		ld.interact(player)
+		await get_tree().create_timer(0.3).timeout
+		_check(not ld.is_open, "잠긴 문은 열리지 않음")
+		var bash = open_doors[1]
+		var back: Vector3 = monster.global_position
+		monster.global_position = bash.global_transform * Vector3(bash.width * 0.5, 0.1, 0.6)
+		await _frames(3)
+		_check(bash.is_open, "괴물이 닫힌 문 앞에 오면 문이 열림")
+		monster.global_position = back
+		await _frames(2)
 
 	# ---- 문이 다 열린 뒤 괴물이 좁은 문을 지나 모든 구역으로 길을 찾는지 (실측 폭 2.5m 복도, 2m 문)
 	var nav_map: RID = monster.agent.get_navigation_map()

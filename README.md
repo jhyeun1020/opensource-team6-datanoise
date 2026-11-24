@@ -23,7 +23,7 @@ godot --path . res://scenes/smoke_test.tscn
 ```
 
 창이 잠깐 떴다가 닫히고 콘솔에 항목별 `[OK]` / `[FAIL]` 이 찍힌다. 종료 코드 0이면 통과.
-검사 항목: 계단실 시작 → 로비 문 열기 → 터미널 3개 정제(오답 처리 포함) → 문 3개 순서대로 개방 → 괴물 활성화 → 괴물이 좁은 문을 지나 모든 구역으로 길찾기 가능 → 손전등 비추면 FROZEN → 끄면 CHASE로 이동 → 접촉 사망 → 체크포인트 리스폰 → 탈출 승리.
+검사 항목: 계단실 시작 → 로비 문 열기 → 방 문 여닫기·잠긴 문·괴물이 문 밀어 열기 → 터미널 3개 정제(오답 처리 포함) → 문 3개 순서대로 개방 → 괴물 활성화 → 괴물이 좁은 문을 지나 모든 구역으로 길찾기 가능 → 손전등 비추면 FROZEN → 끄면 CHASE로 이동 → 접촉 사망 → 체크포인트 리스폰 → 탈출 승리.
 (에디터에서는 `scenes/smoke_test.tscn` 을 열고 **F6** 으로 현재 씬 실행.)
 
 ## 조작
@@ -34,7 +34,7 @@ godot --path . res://scenes/smoke_test.tscn
 | Shift | 달리기 (발소리 소음 증가) |
 | 마우스 | 시선 (눈높이 1.2m, 몸 반지름 0.3m) |
 | F | 손전등 켜기/끄기 (배터리 소모·회복) |
-| E | 로비 문 열기 / 터미널 정제 시작 |
+| E | 문 열기·닫기 / 터미널 정제 시작 |
 | 0 / 1 | 미니게임 입력 |
 | ESC | 미니게임 중단 / 마우스 해제 |
 | R | 탈출 후 다시 시작 |
@@ -67,7 +67,7 @@ godot --path . res://scenes/smoke_test.tscn
 | **A 플레이어** | 이동, 손전등 배터리, 상호작용, 발소리 | `scripts/player.gd`, `scenes/player.tscn` |
 | **B 괴물 AI** | 상태기계, 소음 청취, 빛 반응, 길찾기 | `scripts/monster.gd`, `scenes/monster.tscn` |
 | **C 미니게임·UI** | 0/1 순서 입력, 패턴 대조, HUD | `scripts/minigame.gd`, `scripts/terminal.gd`, `scripts/hud.gd` |
-| **D 레벨·연출** | 3층 레벨, 문·셔터, 조명, 노이즈 셰이더, 사운드 | `scripts/level_builder.gd`, `scripts/door.gd`, `scripts/start_door.gd`, `scripts/noise_overlay.gd`, `shaders/` |
+| **D 레벨·연출** | 3층 레벨, 문·셔터, 조명, 노이즈 셰이더, 사운드 | `scripts/level_builder.gd`, `scripts/door.gd`, `scripts/start_door.gd`, `scripts/room_door.gd`, `scripts/noise_overlay.gd`, `shaders/` |
 
 **서로의 파일을 직접 고치지 않는다.** 파트 간 접점은 아래 이벤트만 쓴다.
 
@@ -117,6 +117,9 @@ DORMANT ──노드1 정제──▶ IDLE ──소음 들림──▶ INVESTIG
  P 계단실 시작(38.6, 7.0), +x(로비 문)를 보고 시작   괴물 스폰(57, 0): 셔터1과 셔터2 사이
  들어갈 수 있는 방: ML304, ML313, ML314, 서버실, 셔터1 옆 랩실, 학회실. 나머지는 잠긴 문.
 ```
+
+**방 문** (`room_door.gd`): 모든 방에 문이 있다. 들어갈 수 있는 방 9개 문은 E로 여닫고(소음 0.25), 잠긴 방 8개 문은 E를 누르면 덜컹거린다(소음 0.35).
+괴물은 닫힌 문 앞에 오면 문을 거칠게 밀어 연다(소음 0.8). 문은 플레이어와 빛·시야는 막지만 괴물 몸은 막지 않는다(충돌 레이어 3).
 
 실제 스캔은 Godot 에디터에서 `reference/scan_viewer.tscn` 으로 볼 수 있다. 스캔 원본(GLB)은 용량과 공개 저장소 문제로 Git에 올리지 않으니 팀 단톡방에서 받아 `reference/scans/` 에 넣는다.
 실제 레벨로 바꿀 때: `Main` 노드의 스크립트를 떼고, `NavRegion` 아래에 모델링된 레벨을 넣고 에디터에서 Bake. **문은 `Doors` 아래에** 두어야 네비메시에서 제외된다 (안 그러면 닫힌 문 자리를 괴물이 영원히 못 지나간다).
