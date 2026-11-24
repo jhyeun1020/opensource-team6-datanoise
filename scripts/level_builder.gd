@@ -8,6 +8,8 @@ extends Node3D
 ## 좌표: x = 복도를 따라 서쪽(0) → 동쪽, z = 위쪽(-, 스케치 위) / 아래쪽(+, 스케치 아래). 단위 m.
 ##
 ## 게임 흐름 (기획안 6p를 실제 층 구조에 맞춤):
+## 복도 폭은 플레이 공간을 위해 실측(2.5m)의 2배인 5m로 둔다.
+##
 ##   시작   계단실에서 로비 문(E)을 열고 3층으로 들어간다
 ##   01 도입  서쪽 구역은 처음부터 열려 있다. 서버실에서 노드 1 정제 → 방화셔터 1 개방, 괴물 활성화
 ##   02 위기  셔터 1 동쪽. ML314 강의실에서 노드 2 정제 → 방화셔터 2 개방
@@ -25,7 +27,7 @@ const StartDoorScript := preload("res://scripts/start_door.gd")
 
 const WALL_H := 2.7
 const WALL_T := 0.3
-const CORR := 1.4          # 복도 벽 중심까지 거리. 안쪽 폭 = 2 * CORR - WALL_T = 2.5m
+const CORR := 2.65         # 복도 벽 중심까지 거리. 안쪽 폭 = 2 * CORR - WALL_T = 5.0m (실측 2.5m의 2배, 플레이 공간 확보)
 const DOOR_GAP := 1.6      # 방 출입구 폭 (괴물 반지름 0.5가 지나갈 수 있게)
 const DOOR_H := 2.2        # 출입구 높이. 그 위는 인방(벽 조각)으로 막는다
 const CORRIDOR_END := 67.0 # 직선 복도가 홀로 열리는 x
@@ -54,37 +56,44 @@ const ROOMS := [
 ]
 
 # 아래쪽 로비 (계단실 문 + 엘리베이터). 복도 아래 벽이 이 구간에서 열린다.
-const LOBBY := {"x0": 40.0, "x1": 47.0, "z1": 8.0}
+const LOBBY := {"x0": 40.0, "x1": 47.0, "z1": CORR + 6.6}
 # 계단실: 플레이어 시작 지점. 로비 서쪽 벽의 문으로 들어간다.
-const STAIR := {"x0": 37.0, "x1": 40.0, "z0": 3.0, "z1": 8.0}
-const START_DOOR_Z := 5.0  # 로비 문 경첩 위치 (문은 +z 쪽으로 1.5m)
+const STAIR := {"x0": 37.0, "x1": 40.0, "z0": CORR + 1.6, "z1": CORR + 6.6}
+const START_DOOR_Z := CORR + 3.6  # 로비 문 경첩 위치 (문은 +z 쪽으로 1.5m)
 
 # 동쪽: 홀(엘리베이터, 기둥), 학회실, 사선 복도
-const HALL_TOP := -10.0
-const ACAD := [Vector2(73.5, -10.0), Vector2(83.0, -10.0), Vector2(84.6, -8.2), Vector2(78.71, 1.56), Vector2(73.5, -6.5)]  # 학회실 다각형
+const HALL_TOP := -CORR - 8.6
 const DIAG_ANGLE_DEG := 35.0   # 사선 복도 방향 (스케치 오른쪽 아래)
 const DIAG_LOWER_START := Vector2(71.5, CORR)  # 사선 복도 아래 벽 시작
-const DIAG_WIDTH := 4.0
+const DIAG_WIDTH := 8.0        # 사선 복도 폭 (본 복도와 같이 2배)
 const DIAG_LENGTH := 16.0
-const ELEVATOR_Z := Vector2(-8.7, -6.3)  # 탈출 엘리베이터 칸 (홀 서쪽 벽, ML314 동쪽 벽과 사이 공간)
+# 학회실 다각형. [3] 꼭짓점은 사선 복도 위쪽 벽 위에 있어야 한다 (_build_east 에서 계산해 덮어씀)
+const ACAD := [Vector2(73.5, HALL_TOP), Vector2(83.0, HALL_TOP), Vector2(84.6, HALL_TOP + 1.8), Vector2.ZERO, Vector2(73.5, HALL_TOP + 3.5)]
+const ACAD_TIP_T := 2.0        # 사선 복도 위쪽 벽 시작점에서 학회실 끝 꼭짓점까지 거리
+const ELEVATOR_Z := Vector2(-CORR - 7.3, -CORR - 4.9)  # 탈출 엘리베이터 칸 (홀 서쪽 벽, ML314 동쪽 벽과 사이 공간)
 const ELEVATOR_BACK_X := 65.0             # 칸 뒷벽 = ML314 동쪽 벽
 
 # 진행 문: (위치, y회전, 크기, 필요 정제 수)
 #   방화셔터 1: 로비 동쪽 복도 / 방화셔터 2: ML314 지나 홀 앞 / 메인 게이트: 홀 엘리베이터
 const GATES := [
-	{"pos": Vector3(48.0, 0, 0), "rot": 0.0, "size": Vector3(0.3, WALL_H, 2.9), "required": 1},
-	{"pos": Vector3(66.0, 0, 0), "rot": 0.0, "size": Vector3(0.3, WALL_H, 2.9), "required": 2},
-	{"pos": Vector3(CORRIDOR_END, 0, -7.5), "rot": 0.0, "size": Vector3(0.3, WALL_H, 2.3), "required": 3},
+	{"pos": Vector3(48.0, 0, 0), "rot": 0.0, "size": Vector3(0.3, WALL_H, CORR * 2.0 + 0.1), "required": 1},
+	{"pos": Vector3(66.0, 0, 0), "rot": 0.0, "size": Vector3(0.3, WALL_H, CORR * 2.0 + 0.1), "required": 2},
+	{"pos": Vector3(CORRIDOR_END, 0, -CORR - 6.1), "rot": 0.0, "size": Vector3(0.3, WALL_H, 2.3), "required": 3},
 ]
 
+# 터미널 (위치, 화면 방향). 벽에 등을 붙인다.
+const T1_POS := Vector3(33.7, 0.0, CORR + NORMAL_DEPTH - 0.5)   # 서버실 안쪽 벽
+const T2_POS := Vector3(64.5, 0.0, -CORR - ML_DEPTH * 0.5)      # ML314 교탁 자리
+const T3_POS := Vector3(79.0, 0.0, HALL_TOP + 0.5)              # 학회실 윗벽
+
 # 스모크 테스트가 쓰는 좌표
-const START_POS := Vector3(38.6, 0.1, 5.75)
-const EXIT_POS := Vector3(66.0, 0.1, -7.5)
+const START_POS := Vector3(38.6, 0.1, START_DOOR_Z + 0.75)
+const EXIT_POS := Vector3(66.0, 0.1, -CORR - 6.1)
 const FREEZE_TEST_POS := Vector3(5.0, 0.1, 0.0)  # 장애물 없는 서쪽 직선 복도, +x를 보고 선다
 const NAV_TEST_POINTS := [
-	Vector3(1.5, 0, 0), Vector3(38.5, 0, 6.5), Vector3(33.7, 0, 4.0), Vector3(40.0, 0, -5.4),
-	Vector3(23.0, 0, 5.4), Vector3(50.0, 0, 5.2), Vector3(58.0, 0, -5.4), Vector3(70.0, 0, -6.0),
-	Vector3(81.0, 0, -8.0), Vector3(82.0, 0, 6.3), Vector3(66.0, 0, -7.5),
+	Vector3(1.5, 0, 0), Vector3(38.5, 0, CORR + 5.6), Vector3(33.7, 0, CORR + 3.0), Vector3(40.0, 0, -CORR - 4.0),
+	Vector3(23.0, 0, CORR + 4.0), Vector3(50.0, 0, CORR + 3.8), Vector3(58.0, 0, -CORR - 4.0), Vector3(70.0, 0, -CORR - 4.6),
+	Vector3(81.5, 0, HALL_TOP + 2.2), Vector3(82.0, 0, 5.0), Vector3(66.0, 0, -CORR - 6.1),
 ]
 
 @onready var nav_region: NavigationRegion3D = $NavRegion
@@ -294,7 +303,7 @@ func _build_east() -> void:
 	var up := _diag_up()
 	var lower0: Vector2 = DIAG_LOWER_START
 	var upper0: Vector2 = lower0 + up * DIAG_WIDTH
-	var tip: Vector2 = ACAD[3]
+	var tip: Vector2 = upper0 + d * ACAD_TIP_T
 	var lower_end: Vector2 = lower0 + d * DIAG_LENGTH
 	var upper_end: Vector2 = upper0 + d * DIAG_LENGTH
 
@@ -303,7 +312,7 @@ func _build_east() -> void:
 		Vector2(CORRIDOR_END, HALL_TOP), Vector2(ACAD[0].x, HALL_TOP), ACAD[4], tip,
 		upper_end, lower_end, lower0, Vector2(CORRIDOR_END, CORR)]))
 	# 학회실 바닥
-	_floor_poly(PackedVector2Array(ACAD))
+	_floor_poly(PackedVector2Array([ACAD[0], ACAD[1], ACAD[2], tip, ACAD[4]]))
 
 	# 홀 서쪽 벽 (엘리베이터 칸 자리만 뚫림), 홀+학회실 윗벽
 	var e_in := Vector2(ELEVATOR_Z.x + WALL_T * 0.5, ELEVATOR_Z.y - WALL_T * 0.5)  # 칸 안쪽 z 범위
@@ -315,7 +324,7 @@ func _build_east() -> void:
 	_wall_seg(Vector2(ELEVATOR_BACK_X, ELEVATOR_Z.y), Vector2(CORRIDOR_END, ELEVATOR_Z.y))
 	_sign("엘리베이터", Vector3(CORRIDOR_END + WALL_T * 0.5 + 0.02, 2.45, (ELEVATOR_Z.x + ELEVATOR_Z.y) * 0.5), PI / 2)
 	# 기둥
-	_box(nav_region, Vector3(71.2, WALL_H * 0.5, -2.6), Vector3(0.8, WALL_H, 0.8), _wall_mat)
+	_box(nav_region, Vector3(71.2, WALL_H * 0.5, -CORR - 1.2), Vector3(0.8, WALL_H, 0.8), _wall_mat)
 
 	# 학회실 벽 (서쪽 아래 사선 벽 가운데에 출입구)
 	_wall_seg(ACAD[0], ACAD[4])
@@ -331,7 +340,7 @@ func _build_east() -> void:
 	var sign_pos: Vector2 = sw_mid + sw_dir * (acad_gap * 0.5 + 0.6) + sw_out * (WALL_T * 0.5 + 0.02)
 	_sign("학회실", Vector3(sign_pos.x, 2.3, sign_pos.y), _face_rot(sw_out))
 	# 학회실 회의 탁자
-	_box(nav_region, Vector3(78.5, 0.375, -6.0), Vector3(3.0, 0.75, 1.0), _desk_mat)
+	_box(nav_region, Vector3(78.5, 0.375, HALL_TOP + 4.0), Vector3(3.0, 0.75, 1.0), _desk_mat)
 
 	# 사선 복도 벽
 	_wall_seg(lower0, lower_end)
@@ -354,8 +363,8 @@ func _build_east() -> void:
 	var mid: Vector2 = (lower_end + upper_end) * 0.5
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 7
-	for i in 9:
-		var p: Vector2 = mid - d * rng.randf_range(0.5, 1.6) + up * rng.randf_range(-1.6, 1.6)
+	for i in 16:
+		var p: Vector2 = mid - d * rng.randf_range(0.5, 1.8) + up * rng.randf_range(-DIAG_WIDTH * 0.42, DIAG_WIDTH * 0.42)
 		var s := Vector3(rng.randf_range(0.5, 1.2), rng.randf_range(0.4, 1.6), rng.randf_range(0.5, 1.2))
 		var body := _box(nav_region, Vector3(p.x, s.y * 0.5, p.y), s, _debris_mat)
 		body.rotation.y = rng.randf_range(0, PI)
@@ -385,9 +394,9 @@ func _place_gates() -> void:
 
 func _place_terminals() -> void:
 	# (위치, 화면이 향하는 방향, 노드 번호, 모드). 벽에 등을 붙인다.
-	_terminal(Vector3(33.7, 0.0, 6.9), Vector3(0, 0, -1), 1, Terminal.Mode.SEQUENCE)   # 서버실
-	_terminal(Vector3(64.5, 0.0, -5.4), Vector3(-1, 0, 0), 2, Terminal.Mode.PATTERN)   # ML314 교탁 자리
-	_terminal(Vector3(79.0, 0.0, -9.5), Vector3(0, 0, 1), 3, Terminal.Mode.SEQUENCE)   # 학회실
+	_terminal(T1_POS, Vector3(0, 0, -1), 1, Terminal.Mode.SEQUENCE)   # 서버실
+	_terminal(T2_POS, Vector3(-1, 0, 0), 2, Terminal.Mode.PATTERN)   # ML314 교탁 자리
+	_terminal(T3_POS, Vector3(0, 0, 1), 3, Terminal.Mode.SEQUENCE)   # 학회실
 
 
 func _terminal(pos: Vector3, face_dir: Vector3, index: int, mode: int) -> void:
@@ -404,15 +413,15 @@ func _place_lights() -> void:
 	var corridor_red := Color(0.8, 0.12, 0.12)
 	var room_blue := Color(0.35, 0.45, 0.7)
 	for x in range(4, int(CORRIDOR_END), 8):
-		_light(Vector3(x, WALL_H - 0.3, 0), corridor_red, 0.6, 7.0)
+		_light(Vector3(x, WALL_H - 0.3, 0), corridor_red, 0.6, 8.0)
 	for r in ROOMS:
 		if r.open:
 			var zc: float = r.side * (CORR + r.depth * 0.5)
 			_light(Vector3((r.x0 + r.x1) * 0.5, WALL_H - 0.3, zc), room_blue, 0.6, maxf(r.x1 - r.x0, r.depth) * 0.8)
-	_light(Vector3((LOBBY.x0 + LOBBY.x1) * 0.5, WALL_H - 0.3, 5.0), room_blue, 0.5, 7.0)
-	_light(Vector3((STAIR.x0 + STAIR.x1) * 0.5, WALL_H - 0.3, 5.5), Color(0.9, 0.85, 0.7), 0.4, 5.0)
-	_light(Vector3(70.0, WALL_H - 0.3, -6.0), room_blue, 0.5, 8.0)
-	_light(Vector3(78.5, WALL_H - 0.3, -5.5), room_blue, 0.6, 9.0)
+	_light(Vector3((LOBBY.x0 + LOBBY.x1) * 0.5, WALL_H - 0.3, CORR + 3.3), room_blue, 0.5, 7.0)
+	_light(Vector3((STAIR.x0 + STAIR.x1) * 0.5, WALL_H - 0.3, (STAIR.z0 + STAIR.z1) * 0.5), Color(0.9, 0.85, 0.7), 0.4, 5.0)
+	_light(Vector3(70.0, WALL_H - 0.3, -CORR - 4.6), room_blue, 0.5, 8.0)
+	_light(Vector3(78.5, WALL_H - 0.3, HALL_TOP + 4.5), room_blue, 0.6, 9.0)
 	var dmid: Vector2 = DIAG_LOWER_START + _diag_dir() * 8.0 + _diag_up() * DIAG_WIDTH * 0.5
 	_light(Vector3(dmid.x, WALL_H - 0.3, dmid.y), corridor_red, 0.6, 9.0)
 
