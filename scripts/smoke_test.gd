@@ -62,8 +62,12 @@ func _run() -> void:
 		# 테스트 중 실제 마우스가 움직여도 결과가 같도록 시작 방향(+x)을 다시 맞춘다
 		player.rotation = Vector3(0, -PI / 2, 0)
 		player.head.rotation = Vector3.ZERO
-		await _frames(2)
-		_check(player.interact_ray.get_collider() == sd and sd.can_interact(), "시작 시 로비 문을 보고 있고 열 수 있음")
+		# 레이캐스트 → 상호작용 대상 갱신은 물리 프레임 순서에 따라 한두 프레임 늦을 수 있다
+		for i in 10:
+			await _frames(1)
+			if player._current_target == sd:
+				break
+		_check(player._current_target == sd and sd.can_interact(), "시작 시 로비 문을 보고 있고 열 수 있음")
 		player._try_interact()
 		await get_tree().create_timer(1.4).timeout
 		_check(sd.is_open and not sd.can_interact(), "E로 로비 문 열림")

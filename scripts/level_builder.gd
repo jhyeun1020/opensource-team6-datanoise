@@ -66,24 +66,25 @@ const DIAG_ANGLE_DEG := 35.0   # 사선 복도 방향 (스케치 오른쪽 아�
 const DIAG_LOWER_START := Vector2(71.5, CORR)  # 사선 복도 아래 벽 시작
 const DIAG_WIDTH := 4.0
 const DIAG_LENGTH := 16.0
-const ELEVATOR_X := Vector2(68.4, 70.6)  # 탈출 엘리베이터 칸 (홀 위쪽 벽)
+const ELEVATOR_Z := Vector2(-8.7, -6.3)  # 탈출 엘리베이터 칸 (홀 서쪽 벽, ML314 동쪽 벽과 사이 공간)
+const ELEVATOR_BACK_X := 65.0             # 칸 뒷벽 = ML314 동쪽 벽
 
 # 진행 문: (위치, y회전, 크기, 필요 정제 수)
 #   방화셔터 1: 로비 동쪽 복도 / 방화셔터 2: ML314 지나 홀 앞 / 메인 게이트: 홀 엘리베이터
 const GATES := [
 	{"pos": Vector3(48.0, 0, 0), "rot": 0.0, "size": Vector3(0.3, WALL_H, 2.9), "required": 1},
 	{"pos": Vector3(66.0, 0, 0), "rot": 0.0, "size": Vector3(0.3, WALL_H, 2.9), "required": 2},
-	{"pos": Vector3(69.5, 0, HALL_TOP), "rot": PI / 2, "size": Vector3(0.3, WALL_H, 2.3), "required": 3},
+	{"pos": Vector3(CORRIDOR_END, 0, -7.5), "rot": 0.0, "size": Vector3(0.3, WALL_H, 2.3), "required": 3},
 ]
 
 # 스모크 테스트가 쓰는 좌표
 const START_POS := Vector3(38.6, 0.1, 5.75)
-const EXIT_POS := Vector3(69.5, 0.1, -11.2)
+const EXIT_POS := Vector3(66.0, 0.1, -7.5)
 const FREEZE_TEST_POS := Vector3(5.0, 0.1, 0.0)  # 장애물 없는 서쪽 직선 복도, +x를 보고 선다
 const NAV_TEST_POINTS := [
 	Vector3(1.5, 0, 0), Vector3(38.5, 0, 6.5), Vector3(33.7, 0, 4.0), Vector3(40.0, 0, -5.4),
-	Vector3(23.0, 0, 5.4), Vector3(50.0, 0, 4.4), Vector3(58.0, 0, -5.4), Vector3(70.0, 0, -6.0),
-	Vector3(81.0, 0, -8.0), Vector3(82.0, 0, 6.3), Vector3(69.5, 0, -11.2),
+	Vector3(23.0, 0, 5.4), Vector3(50.0, 0, 5.2), Vector3(58.0, 0, -5.4), Vector3(70.0, 0, -6.0),
+	Vector3(81.0, 0, -8.0), Vector3(82.0, 0, 6.3), Vector3(66.0, 0, -7.5),
 ]
 
 @onready var nav_region: NavigationRegion3D = $NavRegion
@@ -213,9 +214,9 @@ func _build_rooms() -> void:
 		if r.get("racks", false):
 			_place_server_racks(r)
 		if r.get("tables", false):
-			var zc := s * (CORR + depth * 0.5)
-			_box(nav_region, Vector3((r.x0 + r.x1) * 0.5, 0.375, zc - 1.05), Vector3(2.4, 0.75, 0.8), _desk_mat)
-			_box(nav_region, Vector3((r.x0 + r.x1) * 0.5, 0.375, zc + 1.05), Vector3(2.4, 0.75, 0.8), _desk_mat)
+			# 실험 탁자 2개. 출입구 앞은 2m 이상 비워 둔다 (좁으면 네비메시가 끊김)
+			for zt in [CORR + 2.8, CORR + 4.8]:
+				_box(nav_region, Vector3((r.x0 + r.x1) * 0.5, 0.375, s * zt), Vector3(2.0, 0.75, 0.8), _desk_mat)
 
 
 ## 강의실 책상: 앞(동쪽)을 보는 줄 4개, 줄마다 가운데 통로를 두고 2블록.
@@ -249,12 +250,12 @@ func _build_lobby_and_stairs() -> void:
 	_floor_rect(LOBBY.x0, LOBBY.x1, CORR, LOBBY.z1, true)
 	var door_gap := [START_DOOR_Z, START_DOOR_Z + 1.5]  # z 좌표
 	_wall_seg(Vector2(LOBBY.x0, CORR), Vector2(LOBBY.x0, LOBBY.z1), [door_gap])
-	_wall_seg(Vector2(LOBBY.x0, LOBBY.z1), Vector2(LOBBY.x1, LOBBY.z1))
+	_wall_seg(Vector2(LOBBY.x0, LOBBY.z1), Vector2(LOBBY.x1, LOBBY.z1))  # 로비 안쪽 벽
 	_wall_seg(Vector2(LOBBY.x1, CORR), Vector2(LOBBY.x1, LOBBY.z1))
-	# 로비 엘리베이터 (작동 안 함, 장식)
-	var ex := LOBBY.x1 - WALL_T * 0.5 - 0.04
-	_box(_extras, Vector3(ex, 1.1, 4.6), Vector3(0.08, 2.2, 1.6), _metal_mat, false)
-	_sign("엘리베이터\n점검 중", Vector3(ex - 0.02, 2.4, 4.6), -PI / 2)
+	# 로비 엘리베이터 (작동 안 함, 장식). 로비 안쪽 벽, 동쪽 모서리 가까이
+	var ez := LOBBY.z1 - WALL_T * 0.5 - 0.04
+	_box(_extras, Vector3(44.8, 1.1, ez), Vector3(1.6, 2.2, 0.08), _metal_mat, false)
+	_sign("엘리베이터\n점검 중", Vector3(44.8, 2.4, ez - 0.02), PI)
 	_sign("계단", Vector3(LOBBY.x0 + WALL_T * 0.5 + 0.02, 2.3, START_DOOR_Z + 0.75), PI / 2)
 
 	# 계단실
@@ -304,16 +305,15 @@ func _build_east() -> void:
 	# 학회실 바닥
 	_floor_poly(PackedVector2Array(ACAD))
 
-	# 홀 서쪽 벽, 홀+학회실 윗벽 (엘리베이터 칸 자리만 뚫림)
-	_wall_seg(Vector2(CORRIDOR_END, -CORR), Vector2(CORRIDOR_END, HALL_TOP))
-	_wall_seg(Vector2(CORRIDOR_END, HALL_TOP), ACAD[1], [[ELEVATOR_X.x, ELEVATOR_X.y]])
-	# 엘리베이터 칸
-	var ez := HALL_TOP - 2.2
-	_floor_rect(ELEVATOR_X.x, ELEVATOR_X.y, ez, HALL_TOP, true)
-	_wall_seg(Vector2(ELEVATOR_X.x, HALL_TOP), Vector2(ELEVATOR_X.x, ez))
-	_wall_seg(Vector2(ELEVATOR_X.y, HALL_TOP), Vector2(ELEVATOR_X.y, ez))
-	_wall_seg(Vector2(ELEVATOR_X.x, ez), Vector2(ELEVATOR_X.y, ez))
-	_sign("엘리베이터", Vector3((ELEVATOR_X.x + ELEVATOR_X.y) * 0.5, 2.45, HALL_TOP + WALL_T * 0.5 + 0.02), 0.0)
+	# 홀 서쪽 벽 (엘리베이터 칸 자리만 뚫림), 홀+학회실 윗벽
+	var e_in := Vector2(ELEVATOR_Z.x + WALL_T * 0.5, ELEVATOR_Z.y - WALL_T * 0.5)  # 칸 안쪽 z 범위
+	_wall_seg(Vector2(CORRIDOR_END, -CORR), Vector2(CORRIDOR_END, HALL_TOP), [[e_in.x, e_in.y]])
+	_wall_seg(Vector2(CORRIDOR_END, HALL_TOP), ACAD[1])
+	# 엘리베이터 칸 (뒷벽은 ML314 동쪽 벽)
+	_floor_rect(ELEVATOR_BACK_X, CORRIDOR_END, ELEVATOR_Z.x, ELEVATOR_Z.y, true)
+	_wall_seg(Vector2(ELEVATOR_BACK_X, ELEVATOR_Z.x), Vector2(CORRIDOR_END, ELEVATOR_Z.x))
+	_wall_seg(Vector2(ELEVATOR_BACK_X, ELEVATOR_Z.y), Vector2(CORRIDOR_END, ELEVATOR_Z.y))
+	_sign("엘리베이터", Vector3(CORRIDOR_END + WALL_T * 0.5 + 0.02, 2.45, (ELEVATOR_Z.x + ELEVATOR_Z.y) * 0.5), PI / 2)
 	# 기둥
 	_box(nav_region, Vector3(71.2, WALL_H * 0.5, -2.6), Vector3(0.8, WALL_H, 0.8), _wall_mat)
 
@@ -431,7 +431,7 @@ func _place_exit_trigger() -> void:
 	var area := Area3D.new()
 	var col := CollisionShape3D.new()
 	var shape := BoxShape3D.new()
-	shape.size = Vector3(1.6, WALL_H, 1.2)
+	shape.size = Vector3(1.2, WALL_H, 1.6)
 	col.shape = shape
 	area.add_child(col)
 	_extras.add_child(area)
