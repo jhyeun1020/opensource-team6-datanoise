@@ -24,10 +24,17 @@ func _ready() -> void:
 		_flash_label.text = "손전등 [F]  %s" % ("ON" if p.flashlight_on else "OFF")
 		p.battery_changed.connect(func(ratio: float): _battery.value = ratio)
 		p.flashlight_toggled.connect(func(on: bool): _flash_label.text = "손전등 [F]  %s" % ("ON" if on else "OFF"))
-		p.interact_target_changed.connect(func(target: Node): _prompt.visible = target != null)
+		p.interact_target_changed.connect(_on_interact_target_changed)
 	var m := GameManager.monster
 	if m:
 		m.state_changed.connect(func(state_name: String): _debug.text = "MONSTER: " + state_name)
+
+
+func _on_interact_target_changed(target: Node) -> void:
+	_prompt.visible = target != null
+	if target:
+		var custom = target.get("prompt_text")  # 대상이 문구를 정하면 그걸 쓴다 (예: 로비 문)
+		_prompt.text = custom if custom is String else "[E]  터미널 정제"
 
 
 func _unhandled_input(event: InputEvent) -> void:

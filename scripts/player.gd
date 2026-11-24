@@ -190,6 +190,9 @@ func _update_interact_prompt() -> void:
 func _try_interact() -> void:
 	if _current_target:
 		_current_target.interact(self)
+		# 문처럼 상태에 따라 문구가 바뀌는 대상(열기/닫기)을 HUD가 다시 읽게 한다
+		if is_instance_valid(_current_target):
+			interact_target_changed.emit(_current_target)
 
 
 # ---------------------------------------------------------------- 잠금 / 리스폰

@@ -34,10 +34,10 @@ environment = SubResource("Environment_dark")
 [node name="Doors" type="Node3D" parent="."]
 
 [node name="Player" parent="." instance=ExtResource("2_player")]
-transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, 2, 0.1, 0)
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, 38.6, 0.1, 7)
 
 [node name="Monster" parent="." instance=ExtResource("3_monster")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 28, 0.1, -5)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 57, 0.1, 0)
 
 [node name="NoiseLayer" type="CanvasLayer" parent="."]
 layer = 10

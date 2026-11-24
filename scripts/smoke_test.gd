@@ -5,6 +5,8 @@ extends Node
 ##   노드 3개 정제 → 문 3개 개방 → 괴물 활성화 → 빛에 정지 → 빛 끄면 추격 → 접촉 사망 → 리스폰 → 탈출
 ## 종료 코드 0 = PASS, 1 = FAIL. 콘솔에 항목별 결과를 찍는다.
 
+const Level := preload("res://scripts/level_builder.gd")
+
 var _lines: Array[String] = []
 var _failed := false
 
@@ -38,6 +40,9 @@ func _run() -> void:
 	if player == null or monster == null:
 		return
 
+	# 테스트 중 실제 마우스가 움직여 시선이 돌아가면 빛 판정이 흔들린다 → 마우스 시선 끔
+	player.mouse_sensitivity = 0.0
+
 	var minigame := get_tree().root.find_child("Minigame", true, false)
 	_check(minigame != null, "미니게임 UI 존재")
 
@@ -50,6 +55,25 @@ func _run() -> void:
 
 	_check(monster.state == monster.State.DORMANT, "시작 시 괴물 비활성(DORMANT)")
 	_check(player.flashlight_on, "시작 시 손전등 켜짐")
+
+	# ---- 계단실에서 시작 → 로비 문 열기
+	_check(player.global_position.distance_to(Level.START_POS) < 0.5, "계단실 시작 위치")
+	var start_doors := get_tree().get_nodes_in_group("start_door")
+	_check(start_doors.size() == 1, "로비 문 배치")
+	if start_doors.size() == 1:
+		var sd = start_doors[0]
+		# 테스트 중 실제 마우스가 움직여도 결과가 같도록 시작 방향(+x)을 다시 맞춘다
+		player.rotation = Vector3(0, -PI / 2, 0)
+		player.head.rotation = Vector3.ZERO
+		# 레이캐스트 → 상호작용 대상 갱신은 물리 프레임 순서에 따라 한두 프레임 늦을 수 있다
+		for i in 10:
+			await _frames(1)
+			if player._current_target == sd:
+				break
+		_check(player._current_target == sd and sd.can_interact(), "시작 시 로비 문을 보고 있고 열 수 있음")
+		player._try_interact()
+		await get_tree().create_timer(1.4).timeout
+		_check(sd.is_open and not sd.can_interact(), "E로 로비 문 열림")
 
 	# ---- 노드 3개 순서대로 정제
 	for t in terminals:
@@ -90,8 +114,43 @@ func _run() -> void:
 		if idx == 1:
 			_check(monster.state != monster.State.DORMANT and monster.visible, "노드 1 이후 괴물 활성화")
 
-	# ---- 괴물: 빛에 정지 / 빛 끄면 추격  (장애물 없는 두 번째 복도 x 34~44에서)
-	player.global_position = Vector3(36, 0.1, 0)
+	# ---- 방 문: 열기·닫기 / 잠긴 문 / 괴물이 밀어 열기
+	var room_doors := get_tree().get_nodes_in_group("room_doors")
+	var open_doors := room_doors.filter(func(d): return not d.locked)
+	var locked_doors := room_doors.filter(func(d): return d.locked)
+	_check(open_doors.size() == 9 and locked_doors.size() == 8, "방 문 배치 (열리는 문 %d / 잠긴 문 %d)" % [open_doors.size(), locked_doors.size()])
+	if open_doors.size() >= 2 and locked_doors.size() >= 1:
+		var rd = open_doors[0]
+		rd.interact(player)
+		await get_tree().create_timer(0.8).timeout
+		_check(rd.is_open and absf(rd.rotation.y - rd._closed_rot) > 1.4, "E로 방 문 열림 (방 안쪽으로 회전)")
+		rd.interact(player)
+		await get_tree().create_timer(0.8).timeout
+		_check(not rd.is_open and absf(rd.rotation.y - rd._closed_rot) < 0.05, "E로 방 문 닫힘")
+		var ld = locked_doors[0]
+		ld.interact(player)
+		await get_tree().create_timer(0.3).timeout
+		_check(not ld.is_open, "잠긴 문은 열리지 않음")
+		var bash = open_doors[1]
+		var back: Vector3 = monster.global_position
+		monster.global_position = bash.global_transform * Vector3(bash.width * 0.5, 0.1, 0.6)
+		await _frames(3)
+		_check(bash.is_open, "괴물이 닫힌 문 앞에 오면 문이 열림")
+		monster.global_position = back
+		await _frames(2)
+
+	# ---- 문이 다 열린 뒤 괴물이 좁은 문을 지나 모든 구역으로 길을 찾는지 (실측 폭 2.5m 복도, 2m 문)
+	var nav_map: RID = monster.agent.get_navigation_map()
+	for goal in Level.NAV_TEST_POINTS:
+		var path := NavigationServer3D.map_get_path(nav_map, monster.spawn_position, goal, true)
+		var reached: bool = path.size() > 0 and Vector2(path[-1].x, path[-1].z).distance_to(Vector2(goal.x, goal.z)) < 0.6
+		_check(reached, "괴물 스폰 → (%.0f, %.0f) 길찾기 가능" % [goal.x, goal.z])
+		if not reached:
+			var closest := NavigationServer3D.map_get_closest_point(nav_map, goal)
+			_lines.append("[INFO]   경로 끝 %s, 목표에 가장 가까운 네비 점 %s" % [path[-1] if path.size() > 0 else "없음", closest])
+
+	# ---- 괴물: 빛에 정지 / 빛 끄면 추격  (장애물 없는 서쪽 직선 복도에서)
+	player.global_position = Level.FREEZE_TEST_POS
 	player.rotation = Vector3(0, -PI / 2, 0)  # +x 방향
 	player.head.rotation = Vector3.ZERO
 	await _frames(1)
@@ -136,6 +195,6 @@ func _run() -> void:
 	_check(GameManager.purified_count == GameManager.TOTAL_NODES, "리스폰 후 정제 진행도 유지")
 
 	# ---- 탈출
-	player.global_position = Vector3(62.5, 0.1, 0)
+	player.global_position = Level.EXIT_POS
 	await _frames(3)
 	_check(GameManager.has_won, "탈출 트리거 → 승리")

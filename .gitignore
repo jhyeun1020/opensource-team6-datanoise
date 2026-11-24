@@ -6,3 +6,7 @@ export/
 # OS
 Thumbs.db
 .DS_Store
+
+# 스캔 원본·텍스처·렌더 이미지: 용량이 크고 학교 내부라 공개 저장소에 올리지 않는다 (팀 단톡방으로 공유)
+reference/scans/*
+!reference/scans/.gitkeep
