@@ -118,8 +118,8 @@ func _run() -> void:
 	var room_doors := get_tree().get_nodes_in_group("room_doors")
 	var open_doors := room_doors.filter(func(d): return not d.locked)
 	var locked_doors := room_doors.filter(func(d): return d.locked)
-	_check(open_doors.size() == 9 and locked_doors.size() == 8, "방 문 배치 (열리는 문 %d / 잠긴 문 %d)" % [open_doors.size(), locked_doors.size()])
-	if open_doors.size() >= 2 and locked_doors.size() >= 1:
+	_check(open_doors.size() == 17 and locked_doors.size() == 0, "모든 방 문이 열림 (열리는 문 %d / 잠긴 문 %d)" % [open_doors.size(), locked_doors.size()])
+	if open_doors.size() >= 2:
 		var rd = open_doors[0]
 		rd.interact(player)
 		await get_tree().create_timer(0.8).timeout
@@ -127,10 +127,11 @@ func _run() -> void:
 		rd.interact(player)
 		await get_tree().create_timer(0.8).timeout
 		_check(not rd.is_open and absf(rd.rotation.y - rd._closed_rot) < 0.05, "E로 방 문 닫힘")
-		var ld = locked_doors[0]
-		ld.interact(player)
-		await get_tree().create_timer(0.3).timeout
-		_check(not ld.is_open, "잠긴 문은 열리지 않음")
+		if locked_doors.size() > 0:
+			var ld = locked_doors[0]
+			ld.interact(player)
+			await get_tree().create_timer(0.3).timeout
+			_check(not ld.is_open, "잠긴 문은 열리지 않음")
 		var bash = open_doors[1]
 		var back: Vector3 = monster.global_position
 		monster.global_position = bash.global_transform * Vector3(bash.width * 0.5, 0.1, 0.6)

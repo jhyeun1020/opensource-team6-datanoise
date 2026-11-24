@@ -38,22 +38,23 @@ const NORMAL_DEPTH := 6.0  # 일반 방: 폭 6m x 깊이 6m
 const ML_DEPTH := 8.0      # 강의실: 폭 14m x 깊이 8m
 
 # 복도에 붙은 방. side -1 = 위쪽(z-), +1 = 아래쪽(z+). doors = 출입구 중심 x.
-# open = 들어갈 수 있는 방. 잠긴 방은 문만 붙어 있고 바닥 충돌이 없다.
+# open = 들어갈 수 있는 방(지금은 전부). false 면 잠긴 문만 붙고 바닥 충돌이 없다.
+# kind = 가구 배치: ml(강의실 책상+칠판) / prof(교수실) / lab(랩실 컴퓨터 책상) / meeting(회의실) / server(서버 랙)
 const ROOMS := [
 	# 위쪽 (스케치 윗줄, 서→동)
-	{"name": "교수연구실", "x0": 1.0, "x1": 7.0, "side": -1, "depth": NORMAL_DEPTH, "doors": [4.0], "open": false},
-	{"name": "교수연구실", "x0": 8.0, "x1": 14.0, "side": -1, "depth": NORMAL_DEPTH, "doors": [11.0], "open": false},
-	{"name": "교수연구실", "x0": 16.0, "x1": 22.0, "side": -1, "depth": NORMAL_DEPTH, "doors": [19.0], "open": false},
-	{"name": "교수연구실", "x0": 24.0, "x1": 30.0, "side": -1, "depth": NORMAL_DEPTH, "doors": [27.0], "open": false},
-	{"name": "ML313", "x0": 33.0, "x1": 47.0, "side": -1, "depth": ML_DEPTH, "doors": [34.6, 45.4], "open": true, "desks": true},
-	{"name": "ML314", "x0": 51.0, "x1": 65.0, "side": -1, "depth": ML_DEPTH, "doors": [52.6, 63.4], "open": true, "desks": true},
+	{"name": "교수연구실", "x0": 1.0, "x1": 7.0, "side": -1, "depth": NORMAL_DEPTH, "doors": [4.0], "open": true, "kind": "prof"},
+	{"name": "교수연구실", "x0": 8.0, "x1": 14.0, "side": -1, "depth": NORMAL_DEPTH, "doors": [11.0], "open": true, "kind": "prof"},
+	{"name": "교수연구실", "x0": 16.0, "x1": 22.0, "side": -1, "depth": NORMAL_DEPTH, "doors": [19.0], "open": true, "kind": "prof"},
+	{"name": "교수연구실", "x0": 24.0, "x1": 30.0, "side": -1, "depth": NORMAL_DEPTH, "doors": [27.0], "open": true, "kind": "prof"},
+	{"name": "ML313", "x0": 33.0, "x1": 47.0, "side": -1, "depth": ML_DEPTH, "doors": [34.6, 45.4], "open": true, "kind": "ml"},
+	{"name": "ML314", "x0": 51.0, "x1": 65.0, "side": -1, "depth": ML_DEPTH, "doors": [52.6, 63.4], "open": true, "kind": "ml"},
 	# 아래쪽 (스케치 아랫줄, 서→동)
-	{"name": "회의실", "x0": 0.0, "x1": 6.0, "side": 1, "depth": NORMAL_DEPTH, "doors": [3.0], "open": false},
-	{"name": "랩실", "x0": 8.0, "x1": 14.0, "side": 1, "depth": NORMAL_DEPTH, "doors": [11.0], "open": false},
-	{"name": "ML304", "x0": 16.0, "x1": 30.0, "side": 1, "depth": ML_DEPTH, "doors": [17.6, 28.4], "open": true, "desks": true},
-	{"name": "서버실", "x0": 30.7, "x1": 36.7, "side": 1, "depth": NORMAL_DEPTH, "doors": [33.7], "open": true, "racks": true},
-	{"name": "랩실", "x0": 49.0, "x1": 55.0, "side": 1, "depth": NORMAL_DEPTH, "doors": [52.0], "open": true, "tables": true},
-	{"name": "랩실", "x0": 58.0, "x1": 64.0, "side": 1, "depth": NORMAL_DEPTH, "doors": [61.0], "open": false},
+	{"name": "회의실", "x0": 0.0, "x1": 6.0, "side": 1, "depth": NORMAL_DEPTH, "doors": [3.0], "open": true, "kind": "meeting"},
+	{"name": "랩실", "x0": 8.0, "x1": 14.0, "side": 1, "depth": NORMAL_DEPTH, "doors": [11.0], "open": true, "kind": "lab"},
+	{"name": "ML304", "x0": 16.0, "x1": 30.0, "side": 1, "depth": ML_DEPTH, "doors": [17.6, 28.4], "open": true, "kind": "ml"},
+	{"name": "서버실", "x0": 30.7, "x1": 36.7, "side": 1, "depth": NORMAL_DEPTH, "doors": [33.7], "open": true, "kind": "server"},
+	{"name": "랩실", "x0": 49.0, "x1": 55.0, "side": 1, "depth": NORMAL_DEPTH, "doors": [52.0], "open": true, "kind": "lab"},
+	{"name": "랩실", "x0": 58.0, "x1": 64.0, "side": 1, "depth": NORMAL_DEPTH, "doors": [61.0], "open": true, "kind": "lab"},
 ]
 
 # 아래쪽 로비 (계단실 문 + 엘리베이터). 복도 아래 벽이 이 구간에서 열린다.
@@ -71,6 +72,7 @@ const DIAG_LENGTH := 16.0
 # 학회실 다각형. [3] 꼭짓점은 사선 복도 위쪽 벽 위에 있어야 한다 (_build_east 에서 계산해 덮어씀)
 const ACAD := [Vector2(73.5, HALL_TOP), Vector2(83.0, HALL_TOP), Vector2(84.6, HALL_TOP + 1.8), Vector2.ZERO, Vector2(73.5, HALL_TOP + 3.5)]
 const ACAD_TIP_T := 2.0        # 사선 복도 위쪽 벽 시작점에서 학회실 끝 꼭짓점까지 거리
+const DIAG_LAB_T := 13.0       # 사선 복도 끝 랩실 출입구 위치 (같은 기준, 랩실은 그 앞뒤 3m)
 const ELEVATOR_Z := Vector2(-CORR - 7.3, -CORR - 4.9)  # 탈출 엘리베이터 칸 (홀 서쪽 벽, ML314 동쪽 벽과 사이 공간)
 const ELEVATOR_BACK_X := 65.0             # 칸 뒷벽 = ML314 동쪽 벽
 
@@ -93,8 +95,9 @@ const EXIT_POS := Vector3(66.0, 0.1, -CORR - 6.1)
 const FREEZE_TEST_POS := Vector3(5.0, 0.1, 0.0)  # 장애물 없는 서쪽 직선 복도, +x를 보고 선다
 const NAV_TEST_POINTS := [
 	Vector3(1.5, 0, 0), Vector3(38.5, 0, CORR + 5.6), Vector3(33.7, 0, CORR + 3.0), Vector3(40.0, 0, -CORR - 4.0),
-	Vector3(23.0, 0, CORR + 4.0), Vector3(50.0, 0, CORR + 3.8), Vector3(58.0, 0, -CORR - 4.0), Vector3(70.0, 0, -CORR - 4.6),
+	Vector3(23.0, 0, CORR + 4.0), Vector3(52.0, 0, CORR + 3.0), Vector3(58.0, 0, -CORR - 4.0), Vector3(70.0, 0, -CORR - 4.6),
 	Vector3(81.5, 0, HALL_TOP + 2.2), Vector3(82.0, 0, 5.0), Vector3(66.0, 0, -CORR - 6.1),
+	Vector3(4.0, 0, -CORR - 0.9), Vector3(5.9, 0, -CORR - 4.4), Vector3(11.0, 0, CORR + 3.0), Vector3(3.0, 0, CORR + 1.2), Vector3(88.4, 0, 1.1),
 ]
 
 @onready var nav_region: NavigationRegion3D = $NavRegion
@@ -108,6 +111,10 @@ var _rack_mat: StandardMaterial3D
 var _desk_mat: StandardMaterial3D
 var _metal_mat: StandardMaterial3D
 var _debris_mat: StandardMaterial3D
+var _board_mat: StandardMaterial3D
+var _screen_mat: StandardMaterial3D
+var _shelf_mat: StandardMaterial3D
+var _book_mat: StandardMaterial3D
 
 
 func _ready() -> void:
@@ -174,6 +181,13 @@ func _make_materials() -> void:
 	_desk_mat = _mat(Color(0.28, 0.29, 0.31), 0.7)
 	_metal_mat = _mat(Color(0.35, 0.36, 0.38), 0.3, 0.8)
 	_debris_mat = _mat(Color(0.18, 0.16, 0.14), 1.0)
+	_board_mat = _mat(Color(0.06, 0.16, 0.1), 0.9)
+	_screen_mat = _mat(Color(0.02, 0.02, 0.03), 0.3)
+	_screen_mat.emission_enabled = true
+	_screen_mat.emission = Color(0.1, 0.18, 0.3)
+	_screen_mat.emission_energy_multiplier = 0.4
+	_shelf_mat = _mat(Color(0.2, 0.14, 0.09), 0.8)
+	_book_mat = _mat(Color(0.3, 0.12, 0.1), 0.9)
 
 
 # ---------------------------------------------------------------- 복도
@@ -221,14 +235,21 @@ func _build_rooms() -> void:
 			else:
 				# 잠긴 문: 복도 쪽 벽면에 붙어 있고 열리지 않는다
 				_room_door(Vector2(dx - 0.5, s * (CORR - WALL_T * 0.5 - 0.04)), Vector2(1, 0), 1.0, Vector2(0, s), true)
-		if r.get("desks", false):
-			_place_desks(r)
-		if r.get("racks", false):
-			_place_server_racks(r)
-		if r.get("tables", false):
-			# 실험 탁자 2개. 출입구 앞은 2m 이상 비워 둔다 (좁으면 네비메시가 끊김)
-			for zt in [CORR + 2.8, CORR + 4.8]:
-				_box(nav_region, Vector3((r.x0 + r.x1) * 0.5, 0.375, s * zt), Vector3(2.0, 0.75, 0.8), _desk_mat)
+		# 방 안 좌표계: 원점 = 복도 쪽 벽 가운데, u = 벽을 따라(+x), v = 방 안쪽
+		var origin := Vector2((r.x0 + r.x1) * 0.5, z_in)
+		var w: float = r.x1 - r.x0
+		match r.get("kind", ""):
+			"ml":
+				_place_desks(r)
+				_blackboard(origin, Vector2(1, 0), Vector2(0, s), w, depth)
+			"server":
+				_place_server_racks(r)
+			"lab":
+				_furnish_lab(origin, Vector2(1, 0), Vector2(0, s), w, depth)
+			"prof":
+				_furnish_prof(origin, Vector2(1, 0), Vector2(0, s), w, depth)
+			"meeting":
+				_furnish_meeting(origin, Vector2(1, 0), Vector2(0, s), w, depth)
 
 
 ## 강의실 책상: 앞(동쪽)을 보는 줄 4개, 줄마다 가운데 통로를 두고 2블록.
@@ -245,6 +266,60 @@ func _place_desks(r: Dictionary) -> void:
 		for k in [-1, 1]:
 			var zc: float = z_mid + k * (aisle * 0.5 + block * 0.5)
 			_box(nav_region, Vector3(x, 0.375, zc), Vector3(0.7, 0.75, block), _desk_mat)
+
+
+# ---------------------------------------------------------------- 가구 (방 안 좌표계)
+# lb(): 방 안 좌표 (a = 벽을 따라 가운데에서, b = 벽 중심선에서 안쪽 깊이) 에 상자를 놓는다.
+# size = (u 방향, 높이, v 방향). 바닥에서 y_bottom 만큼 띄운다.
+
+func _lb(origin: Vector2, u: Vector2, v: Vector2, a: float, b: float, y_bottom: float, size: Vector3, mat: Material, collide := true) -> Node3D:
+	var p: Vector2 = origin + u * a + v * b
+	var body := _box(nav_region if collide else _extras, Vector3(p.x, y_bottom + size.y * 0.5, p.y), size, mat, collide)
+	body.rotation.y = atan2(-u.y, u.x)
+	return body
+
+
+## 강의실 칠판: 학회실(동쪽)을 바라보는 벽 = 방의 +u 쪽 벽 안쪽 면
+func _blackboard(origin: Vector2, u: Vector2, v: Vector2, w: float, depth: float) -> void:
+	var a := w * 0.5 - WALL_T * 0.5 - 0.03
+	_lb(origin, u, v, a, depth * 0.5, 0.9, Vector3(0.05, 1.2, 4.2), _board_mat, false)
+	_lb(origin, u, v, a - 0.06, depth * 0.5, 0.86, Vector3(0.12, 0.04, 4.2), _desk_mat, false)  # 분필 받침
+
+
+## 랩실: 양쪽 벽에 책상 3개씩, 책상마다 모니터·키보드·본체. 가운데 통로 4.3m.
+func _furnish_lab(origin: Vector2, u: Vector2, v: Vector2, w: float, depth: float) -> void:
+	for side in [-1.0, 1.0]:
+		var a_desk: float = side * (w * 0.5 - WALL_T * 0.5 - 0.35)
+		for i in 3:
+			var b: float = 1.4 + i * 1.6
+			_lb(origin, u, v, a_desk, b, 0.0, Vector3(0.7, 0.75, 1.4), _desk_mat)
+			_lb(origin, u, v, a_desk + side * 0.18, b, 0.79, Vector3(0.05, 0.36, 0.55), _screen_mat, false)  # 모니터 (벽 쪽, 안을 봄)
+			_lb(origin, u, v, a_desk + side * 0.23, b, 0.75, Vector3(0.12, 0.04, 0.12), _metal_mat, false)   # 모니터 받침
+			_lb(origin, u, v, a_desk - side * 0.12, b, 0.75, Vector3(0.16, 0.02, 0.45), _rack_mat, false)    # 키보드
+			_lb(origin, u, v, a_desk + side * 0.12, b - 0.52, 0.75, Vector3(0.4, 0.42, 0.18), _rack_mat, false)  # 본체
+
+
+## 교수실: 문 열자마자 보이는 접객 탁자, 방 가운데 책장(안쪽 데스크를 가림, 오른쪽으로 돌아 들어감), 안쪽 교수 데스크.
+func _furnish_prof(origin: Vector2, u: Vector2, v: Vector2, w: float, depth: float) -> void:
+	var inner_half := w * 0.5 - WALL_T * 0.5
+	_lb(origin, u, v, 0.5, 2.0, 0.0, Vector3(1.4, 0.45, 0.7), _desk_mat)                    # 접객 탁자
+	var shelf_len := 3.8
+	var shelf_a := -inner_half + shelf_len * 0.5
+	_lb(origin, u, v, shelf_a, 3.4, 0.0, Vector3(shelf_len, 2.0, 0.4), _shelf_mat)          # 책장
+	for k in 4:                                                                             # 책 줄 (장식)
+		_lb(origin, u, v, shelf_a, 3.4 - 0.21, 0.25 + k * 0.45, Vector3(shelf_len - 0.2, 0.3, 0.02), _book_mat, false)
+	_lb(origin, u, v, -1.0, depth - WALL_T * 0.5 - 0.3, 0.0, Vector3(1.8, 0.75, 0.6), _desk_mat)  # 교수 데스크
+	_lb(origin, u, v, -1.0, depth - WALL_T * 0.5 - 0.45, 0.79, Vector3(0.55, 0.36, 0.05), _screen_mat, false)
+	_lb(origin, u, v, -1.0, depth - 1.15, 0.0, Vector3(0.5, 0.95, 0.5), _rack_mat, false)  # 의자 (장식)
+
+
+## 회의실: 가운데 긴 탁자와 양쪽 의자.
+func _furnish_meeting(origin: Vector2, u: Vector2, v: Vector2, w: float, depth: float) -> void:
+	var b_mid := depth * 0.55
+	_lb(origin, u, v, 0.0, b_mid, 0.0, Vector3(3.0, 0.75, 1.0), _desk_mat)
+	for a in [-1.0, 0.0, 1.0]:
+		for k in [-1.0, 1.0]:
+			_lb(origin, u, v, a, b_mid + k * 0.85, 0.0, Vector3(0.45, 0.85, 0.45), _rack_mat)
 
 
 ## 서버실 랙: 양쪽 벽을 따라 2개씩.
@@ -346,21 +421,27 @@ func _build_east() -> void:
 	# 학회실 회의 탁자
 	_box(nav_region, Vector3(78.5, 0.375, HALL_TOP + 4.0), Vector3(3.0, 0.75, 1.0), _desk_mat)
 
-	# 사선 복도 벽
+	# 사선 복도 벽 (위쪽 벽에 끝 랩실 출입구)
+	var lab_t := DIAG_LAB_T  # 랩실 출입구 중심 (위쪽 벽 시작점에서 사선 방향 거리)
 	_wall_seg(lower0, lower_end)
-	_wall_seg(tip, upper_end)
-	# 사선 복도 끝의 랩실 (잠김)
-	var a: Vector2 = upper0 + d * 11.0
-	var b: Vector2 = upper0 + d * 15.0
-	var a2: Vector2 = a + up * NORMAL_DEPTH * 0.85
-	var b2: Vector2 = b + up * NORMAL_DEPTH * 0.85
+	var from_tip := lab_t - ACAD_TIP_T
+	var diag_gap := DOOR_GAP + 0.6  # 사선 벽 출입구는 넓게 (학회실과 같은 이유)
+	_wall_seg(tip, upper_end, [[from_tip - diag_gap * 0.5, from_tip + diag_gap * 0.5]])
+	# 사선 복도 끝의 랩실 (6 x 6m, 들어갈 수 있음)
+	var a: Vector2 = upper0 + d * (lab_t - 3.0)
+	var b: Vector2 = upper0 + d * (lab_t + 3.0)
+	var a2: Vector2 = a + up * NORMAL_DEPTH
+	var b2: Vector2 = b + up * NORMAL_DEPTH
 	_wall_seg(a, a2)
 	_wall_seg(a2, b2)
 	_wall_seg(b2, b)
-	_floor_poly(PackedVector2Array([a, b, b2, a2]), false)
-	var lab_door: Vector2 = upper0 + d * 13.0 - up * (WALL_T * 0.5 + 0.03)
-	_room_door(lab_door - d * 0.5, d, 1.0, up, true)
-	_sign("랩실", Vector3(lab_door.x, 2.3, lab_door.y) + Vector3(-up.x, 0, -up.y) * 0.02, _face_rot(-up))
+	_floor_poly(PackedVector2Array([a, b, b2, a2]))
+	var lab_mid: Vector2 = upper0 + d * lab_t
+	_room_door(lab_mid - d * (diag_gap * 0.5 - 0.02), d, diag_gap - 0.05, up, false)
+	var lab_sign: Vector2 = lab_mid - up * (WALL_T * 0.5 + 0.02)
+	_sign("랩실", Vector3(lab_sign.x, 2.3, lab_sign.y), _face_rot(-up))
+	_furnish_lab(lab_mid, d, up, 6.0, NORMAL_DEPTH)
+	_light(Vector3((lab_mid + up * 3.0).x, WALL_H - 0.3, (lab_mid + up * 3.0).y), Color(0.35, 0.45, 0.7), 0.4, 6.0)
 
 	# 사선 복도 끝: 무너진 잔해로 막힘 (스케치의 낙서 구역, 접근 금지)
 	_wall_seg(lower_end, upper_end)
